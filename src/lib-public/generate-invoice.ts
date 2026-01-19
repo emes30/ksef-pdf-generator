@@ -8,7 +8,7 @@ import { TCreatedPdf } from 'pdfmake/build/pdfmake';
 import { AdditionalDataTypes } from './types/common.types';
 import { generateFARR } from './FARR-generator';
 import { FaRR } from './types/FaRR.types';
-import { parseXML } from '@shared/XML-parser';
+import { parseXML, parseXMLstr } from '@shared/XML-parser';
 import { i18nReady } from './i18n/i18n-init';
 import { generateCorrectivePEF } from './PEF-corrective-generator';
 import { generateBasicPEF } from './PEF-basic-generator';
@@ -78,6 +78,34 @@ export async function generateInvoice(
     default:
       return pdf.getBase64();
   }
+}
+
+export async function generateInvoiceFromStr(
+  ksefXml: string,
+  additionalData: AdditionalDataTypes,
+): Promise<Blob> {
+  const xml: unknown = await parseXMLstr(ksefXml);
+  const wersja: any = (xml as any)?.Faktura?.Naglowek?.KodFormularza?._attributes?.kodSystemowy;
+
+  let pdf: TCreatedPdf;
+
+  return new Promise((resolve): void => {
+    switch (wersja) {
+      case 'FA (1)':
+        pdf = generateFA1((xml as any).Faktura as Faktura1, additionalData);
+        break;
+      case 'FA (2)':
+        pdf = generateFA2((xml as any).Faktura as Faktura2, additionalData);
+        break;
+      case 'FA (3)':
+        pdf = generateFA3((xml as any).Faktura as Faktura3, additionalData);
+        break;
+    }
+
+    pdf.getBlob((blob: Blob): void => {
+        resolve(blob);
+    });
+  });
 }
 
 type FormatType = 'blob' | 'base64';
