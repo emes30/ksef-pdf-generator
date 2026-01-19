@@ -32,3 +32,15 @@ export function parseXML(file: File): Promise<unknown> {
     reader.readAsText(file);
   });
 }
+
+export function parseXMLstr(xmlStr: string): Promise<unknown> {
+  return new Promise((resolve, reject): void => {
+      try {
+        const jsonDoc: Faktura = stripPrefixes(xml2js(xmlStr, { compact: true })) as Faktura;
+
+        resolve(jsonDoc);
+      } catch (error) {
+        reject(error);
+      }
+  });
+}

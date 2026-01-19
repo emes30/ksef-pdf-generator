@@ -4,7 +4,7 @@ import { generateFA2 } from './FA2-generator';
 import { Faktura as Faktura2 } from './types/fa2.types';
 import { generateFA3 } from './FA3-generator';
 import { Faktura as Faktura3 } from './types/fa3.types';
-import { parseXML } from '../shared/XML-parser';
+import { parseXML, parseXMLstr } from '../shared/XML-parser';
 import { TCreatedPdf } from 'pdfmake/build/pdfmake';
 import { AdditionalDataTypes } from './types/common.types';
 
@@ -52,6 +52,34 @@ export async function generateInvoice(
           resolve(base64);
         });
     }
+  });
+}
+
+export async function generateInvoiceFromStr(
+  ksefXml: string,
+  additionalData: AdditionalDataTypes,
+): Promise<Blob> {
+  const xml: unknown = await parseXMLstr(ksefXml);
+  const wersja: any = (xml as any)?.Faktura?.Naglowek?.KodFormularza?._attributes?.kodSystemowy;
+
+  let pdf: TCreatedPdf;
+
+  return new Promise((resolve): void => {
+    switch (wersja) {
+      case 'FA (1)':
+        pdf = generateFA1((xml as any).Faktura as Faktura1, additionalData);
+        break;
+      case 'FA (2)':
+        pdf = generateFA2((xml as any).Faktura as Faktura2, additionalData);
+        break;
+      case 'FA (3)':
+        pdf = generateFA3((xml as any).Faktura as Faktura3, additionalData);
+        break;
+    }
+
+    pdf.getBlob((blob: Blob): void => {
+        resolve(blob);
+    });
   });
 }
 
