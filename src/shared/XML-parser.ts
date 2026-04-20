@@ -32,7 +32,13 @@ export function parseXML(file: File): Promise<unknown> {
 export function parseXMLstr(xmlStr: string): Promise<unknown> {
   return new Promise((resolve, reject): void => {
       try {
-        const jsonDoc: Faktura = stripPrefixes(xml2js(xmlStr, { compact: true })) as Faktura;
+        const jsonDoc: Faktura = xml2js(xmlStr, {
+          compact: true,
+          cdataKey: '_text',
+          trim: true,
+          elementNameFn: stripPrefix,
+          attributeNameFn: stripPrefix,
+        }) as Faktura;
 
         resolve(jsonDoc);
       } catch (error) {
