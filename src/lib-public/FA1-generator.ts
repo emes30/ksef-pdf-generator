@@ -64,5 +64,5 @@ export function generateFA1(invoice: Faktura, additionalData: AdditionalDataType
     ...generateStyle(),
   };
 
-  return pdfMake.createPdf(docDefinition,undefined,undefined,pdfFonts.vfs);
+  return pdfMake.createPdf(docDefinition);
 }

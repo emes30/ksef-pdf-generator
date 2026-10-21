@@ -82,30 +82,47 @@ export async function generateInvoice(
 
 export async function generateInvoiceFromStr(
   ksefXml: string,
-  additionalData: AdditionalDataTypes,
+  additionalData: AdditionalDataTypes
 ): Promise<Blob> {
   const xml: unknown = await parseXMLstr(ksefXml);
-  const wersja: any = (xml as any)?.Faktura?.Naglowek?.KodFormularza?._attributes?.kodSystemowy;
+  const wersjaFa: any = (xml as any)?.Faktura?.Naglowek?.KodFormularza?._attributes?.kodSystemowy;
+  const wersjaPef: any =
+    (xml as any)?.Invoice?.ProfileID?._text ?? (xml as any)?.CreditNote?.ProfileID?._text;
+
+  const wersja = wersjaFa ?? wersjaPef;
 
   let pdf: TCreatedPdf;
 
-  return new Promise((resolve): void => {
-    switch (wersja) {
-      case 'FA (1)':
-        pdf = generateFA1((xml as any).Faktura as Faktura1, additionalData);
-        break;
-      case 'FA (2)':
-        pdf = generateFA2((xml as any).Faktura as Faktura2, additionalData);
-        break;
-      case 'FA (3)':
-        pdf = generateFA3((xml as any).Faktura as Faktura3, additionalData);
-        break;
-    }
+  await i18nReady;
 
-    pdf.getBlob((blob: Blob): void => {
-        resolve(blob);
-    });
-  });
+  switch (wersja) {
+    case 'FA (1)':
+      pdf = generateFA1((xml as any).Faktura as Faktura1, additionalData);
+      break;
+    case 'FA (2)':
+      pdf = generateFA2((xml as any).Faktura as Faktura2, additionalData);
+      break;
+    case 'FA (3)':
+      pdf = generateFA3((xml as any).Faktura as Faktura3, additionalData);
+      break;
+    case 'FA_RR (1)':
+    case 'FA_RR(1)':
+      pdf = generateFARR((xml as any).Faktura as FaRR, additionalData);
+      break;
+    case 'urn:fdc:peppol.eu:2017:poacc:billing:01:1.0':
+      pdf = generateBasicPEF((xml as any).Invoice as PEFBasicInvoice, additionalData);
+      break;
+    case 'urn:fdc:www.efaktura.gov.pl:ver2.0:corr_inv:ver4.0':
+      pdf = generateCorrectivePEF((xml as any).CreditNote as PEFCorrectiveInvoice, additionalData);
+      break;
+    case 'urn:fdc:www.efaktura.gov.pl:ver2.0:plinv:ver1.4':
+      pdf = generateSpecPEF((xml as any).Invoice as PEFSpecInvoice, additionalData);
+      break;
+    default:
+      throw new Error(`Unknown XML Version: ${wersja}`);
+  }
+
+  return pdf.getBlob();
 }
 
 type FormatType = 'blob' | 'base64';
